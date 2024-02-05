@@ -33,10 +33,6 @@ int main(int argc, char * argv[])
 	Logger mg_log(INFO);
 	std::vector<std::string> args;
 
-	mg_log.debug("Test 1");
-	mg_log.warn("Test 2");
-	mg_log.error("Test 3");
-
 	if (argc > 1)
 		args.assign(argv + 1, argv + argc);
 	else

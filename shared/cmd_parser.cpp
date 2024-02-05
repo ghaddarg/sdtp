@@ -33,27 +33,27 @@ namespace mg_ftp
 Parser::Parser(int& arg_num, char * argv[], Logger& mg_logger)
 	: arg_num_(arg_num), port_(SERVER_PORT_NUM), ip_(LOCAL_HOST_IP), size_(0), mg_logger_(mg_logger)
 {
-	mg_logger_.debug("Parser Object Created");
+	mg_logger_.debug(__FUNCTION__, "Parser Object Created");
 
 	if (EXIT_SUCCESS != this->parse_args(argv)) {
-		mg_logger_.error("Error parsing arguments");
+		mg_logger_.error(__FUNCTION__, "Error parsing arguments");
 		this->print_usage();
 		return;
 	}
 }
 Parser::~Parser()
 {
-	mg_logger_.debug("Parser Object Destroyed");
+	mg_logger_.debug(__FUNCTION__, "Parser Object Destroyed");
 }
 
 Parser::Parser(std::string& args, Logger& mg_logger)
 	: arg_num_(args.size()), port_(SERVER_PORT_NUM), ip_(LOCAL_HOST_IP), size_(0), mg_logger_(mg_logger)
 {
-	mg_logger_.debug("Parser Object Created");
+	mg_logger_.debug(__FUNCTION__, "Parser Object Created");
 
 	std::cout << args.size() << std::endl;
 	if (args.size() < 2) {
-		mg_logger_.error("arguments size is too small");
+		mg_logger_.error(__FUNCTION__, "arguments size is too small");
 		this->print_usage();
 		return;
 	}
@@ -62,12 +62,12 @@ Parser::Parser(std::string& args, Logger& mg_logger)
 	args = args.substr(args.find_first_of(" ") + 1);
 	this->key_ = args.substr(0, args.find(" "));
 
-	mg_logger_.debug(" CMD: " + this->cmd_);
-	mg_logger_.debug(" Key: " + this->key_);
+	mg_logger_.debug(__FUNCTION__, " CMD: " + this->cmd_);
+	mg_logger_.debug(__FUNCTION__, " Key: " + this->key_);
 
 	if (!is_valid_cmd(this->cmd_)) {
 
-		mg_logger_.error(this->cmd_ + "not a valid command");
+		mg_logger_.error(__FUNCTION__, this->cmd_ + "not a valid command");
 		this->print_usage();
 		return;
 	}
@@ -80,7 +80,7 @@ Parser::Parser(std::string& args, Logger& mg_logger)
 		args = args.substr(args.find_first_of(" ") + 1);
 		std::vector<char> v(args.begin(), args.end());
 		this->data_.insert(this->data_.end(), v.begin(), v.end());
-		mg_logger_.debug(std::to_string(this->size_));
+		mg_logger_.debug(__FUNCTION__, std::to_string(this->size_));
 	}
 
 }
@@ -90,11 +90,10 @@ Parser::Parser(std::vector<std::string>& args, Logger& mg_logger)
 {
 	int state = STATE_IP;
 	std::string str;
-	mg_logger_.debug("Parser Object Created");
+	mg_logger_.debug(__FUNCTION__, "Parser Object Created");
 
-	std::cout << "Num of Args: " << args.size() << std::endl;
 	if (args.size() < 2) {
-		mg_logger_.error("Args size is too small");
+		mg_logger_.error(__FUNCTION__, "Args size is too small");
 		this->print_usage();
 		return;
 	}
@@ -114,7 +113,7 @@ Parser::Parser(std::vector<std::string>& args, Logger& mg_logger)
 					state = STATE_KEY;
 					str = " CMD: " + this->cmd_;
 				}
-				mg_logger_.debug(str);
+				mg_logger_.debug(__FUNCTION__, str);
 				++it;
 
 				break;
@@ -122,7 +121,7 @@ Parser::Parser(std::vector<std::string>& args, Logger& mg_logger)
 			case STATE_PORT:
 
 				this->port_ = atoi((*it).c_str());
-				mg_logger_.debug(" Port: " + *it);
+				mg_logger_.debug(__FUNCTION__, " Port: " + *it);
 				state = STATE_CMD;
 				it++;
 
@@ -132,11 +131,11 @@ Parser::Parser(std::vector<std::string>& args, Logger& mg_logger)
 
 				this->cmd_ = *it;
 				state = STATE_KEY;
-				mg_logger_.debug(" CMD: " + this->cmd_);
+				mg_logger_.debug(__FUNCTION__, " CMD: " + this->cmd_);
 
 				if (!is_valid_cmd(this->cmd_)) {
 
-					mg_logger_.error(this->cmd_ + "not a valid command");
+					mg_logger_.error(__FUNCTION__, this->cmd_ + "not a valid command");
 					this->print_usage();
 					return;
 				}
@@ -148,7 +147,7 @@ Parser::Parser(std::vector<std::string>& args, Logger& mg_logger)
 
 				this->key_ = *it;
 				state = STATE_SIZE;
-				mg_logger_.debug(" Key: " + this->key_);
+				mg_logger_.debug(__FUNCTION__, " Key: " + this->key_);
 				++it;
 				break;
 
@@ -168,8 +167,8 @@ Parser::Parser(std::vector<std::string>& args, Logger& mg_logger)
 
 					this->size_ = data_.size();
 					state = STATE_END;
-					mg_logger_.debug(" Size: " + std::to_string(this->size_));
-					mg_logger_.debug(" Data: ");
+					mg_logger_.debug(__FUNCTION__, " Size: " + std::to_string(this->size_));
+					mg_logger_.debug(__FUNCTION__, " Data: ");
 					print_data();					
 				} else {
 					return;
@@ -193,10 +192,10 @@ void Parser::print_usage(void)
 	// Usage: 
 	// mg_client.exe <ip-address> <port-number> <cmd> "key" SIZE DATA
 
-	std::cerr << "*** Error ***" << std::endl;
-	std::cerr << "Usage: " << std::endl;
-	std::cerr << "1. mg_client.exe <ip-address> <port-number> <cmd> \"key\" SIZE DATA" << std::endl;
-	std::cerr << "2. mg_client.exe <cmd> \"key\" SIZE DATA" << std::endl;
+	mg_logger_.debug(__FUNCTION__, "*** Error ***");
+	mg_logger_.debug(__FUNCTION__,"Usage: ");
+	mg_logger_.debug(__FUNCTION__,"1. mg_client.exe <ip-address> <port-number> <cmd> \"key\" SIZE DATA");
+	mg_logger_.debug(__FUNCTION__,"2. mg_client.exe <cmd> \"key\" SIZE DATA");
 }
 bool Parser::is_valid_ip(const std::string& ip)
 {
@@ -217,7 +216,7 @@ bool Parser::is_valid_cmd(const std::string& cmd)
 }
 int Parser::parse_args(char * argv[])
 {
-	std::cout << "Parsing num args " << this->arg_num_ << std::endl;
+	mg_logger_.debug(__FUNCTION__,"Parsing num args " + std::to_string(this->arg_num_));
 
 	if (this->arg_num_ <= 2) {
 		this->print_usage();
@@ -249,27 +248,17 @@ int Parser::parse_args(char * argv[])
 
 			if (is_cmd_cu(this->cmd_)) {
 
-				std::cout << "Parsing num args " << argv[i] << std::endl;
-
 				std::string line("test");
 
 				while(std::cin) {
 
 					if (std::getline(std::cin, line)) {
-						//std::cout << "Line: " << line << std::endl;
 						std::vector<char> v(line.begin(), line.end());
 						this->data_.insert(this->data_.end(), v.begin(), v.end());
 					}
 				}
 
-				this->size_ = data_.size();//atoi(argv[i++]);
-
-				std::cout << "Parsing num args " << this->size_ << std::endl;
-				//if (*argv[i] == '\n')
-				//	this->data_ = std::string(argv[i++]);
-
-				//for (unsigned int idx = 0; idx < this->size_; ++idx)
-				//	this->data_.push_back(std::string(argv[i++]));
+				this->size_ = data_.size();
 			}
 		}	
 	}

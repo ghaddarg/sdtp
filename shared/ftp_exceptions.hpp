@@ -14,6 +14,7 @@
 #include <exception>
 #include <stdexcept>
 #include <string>
+#include <iostream>
 
 namespace mg_ftp
 {
@@ -23,37 +24,31 @@ namespace mg_ftp
 
 class ServerException : public std::exception
 {
+protected:
+	std::string msg_;
 public:
-	ServerException(const std::string& msg) : std::runtime_error(msg) {}
-	char * what() { return  "Server Exception. Something went wrong"; }
+	ServerException(const std::string &f_name, const char * msg) : msg_(f_name + "(): " + msg) {}
+	const char * what() const noexcept { return this->msg_.c_str(); }// "Server Exception. Something went wrong"; }
 };
 
-class ServerInvalidPortException : public ServerException
+class ClientException : public ServerException
 {
 public:
-	ServerInvalidPortException(const std::string &f_name) :
-		ServerException(f_name + " Function: port num < 0 error") {}
+	ClientException(const std::string &f_name, const char * msg) : ServerException(f_name, msg) {}
 };
 
-class ServerInvalidSocketDescriptorException : public ServerException
+class FileException : public ServerException
 {
 public:
-	ServerInvalidSocketDescriptorException(const std::string &f_name, const std::string &errno_) :
-		ServerException(f_name + " Error establishing the server socket: " + errno_) {}
+	FileException(const std::string &f_name, const char * msg) : ServerException(f_name, msg) {}
 };
 
-class ServerBindFailException : public ServerException
-{
-public:
-	ServerBindFailException(const std::string &f_name, const std::string &errno_) :
-		ServerException(f_name + " Error binding socket to local address: " + errno_) {}
-};
-
+/*
 class ServerListenFailureException : public ServerException
 {
 public:
 	ServerListenFailureException(const std::string &f_name, const std::string &errno_) :
 		ServerException(f_name + " Error binding socket to local address: " + errno_) {}
 };
-
+*/
 } //namespace mg

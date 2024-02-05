@@ -60,7 +60,8 @@ clean:
 		-rf ${LIBDIR} \
 		*.$(OBJEXT) \
 		lib$(APP).a \
-		$(SRCDIR)/*.$(OBJEXT)
+		$(SRCDIR)/*.$(OBJEXT) \
+		../$(SHARED)/*.$(OBJEXT)
 #########################################################
 #test: clean build_test
 
