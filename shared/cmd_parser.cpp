@@ -13,13 +13,13 @@
 #include <string>
 #include <fstream>
 
-
 extern "C" {
 	#include <sys/types.h>
 	#include <netinet/in.h>
 	#include <arpa/inet.h>
 }
 
+#include <ftp_exceptions.hpp>
 #include <logger.hpp>
 #include <ftp_def.hpp>
 #include <cmd_parser.hpp>
@@ -51,9 +51,14 @@ Parser::Parser(std::string& args, Logger& mg_logger)
 {
 	mg_logger_.debug(__FUNCTION__, "Parser Object Created");
 
-	std::cout << args.size() << std::endl;
-	if (args.size() < 2) {
-		mg_logger_.error(__FUNCTION__, "arguments size is too small");
+	// XXX: TODO: @MG: FIXME: args is string not vector
+	try {
+		if (this->arg_num_ < 2)
+			throw ParserException(__FUNCTION__, "Num of Arguments is too small");
+	} catch (ParserException& e) {
+
+		mg_logger_.warn(__FUNCTION__, e.what());
+		mg_logger_.error(__FUNCTION__, std::to_string(args.size()));
 		this->print_usage();
 		return;
 	}
@@ -92,8 +97,15 @@ Parser::Parser(std::vector<std::string>& args, Logger& mg_logger)
 	std::string str;
 	mg_logger_.debug(__FUNCTION__, "Parser Object Created");
 
-	if (args.size() < 2) {
-		mg_logger_.error(__FUNCTION__, "Args size is too small");
+	mg_logger_.debug(__FUNCTION__, std::to_string(this->arg_num_));
+
+	try {
+		if (this->arg_num_ < 2)
+			throw ParserException(__FUNCTION__, "Num of Arguments is too small");
+	} catch (ParserException& e) {
+
+		mg_logger_.warn(__FUNCTION__, e.what());
+		mg_logger_.error(__FUNCTION__, std::to_string(args.size()));
 		this->print_usage();
 		return;
 	}

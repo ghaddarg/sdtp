@@ -43,12 +43,10 @@ public:
 	FileException(const std::string &f_name, const char * msg) : ServerException(f_name, msg) {}
 };
 
-/*
-class ServerListenFailureException : public ServerException
+class ParserException : public ServerException
 {
 public:
-	ServerListenFailureException(const std::string &f_name, const std::string &errno_) :
-		ServerException(f_name + " Error binding socket to local address: " + errno_) {}
+	ParserException(const std::string &f_name, const char * msg) : ServerException(f_name, msg) {}
 };
-*/
+
 } //namespace mg

@@ -13,6 +13,7 @@
 #include <thread>
 #include <fstream>
 #include <cstdio>
+#include <cassert>
 
 extern "C" {
 	#include <sys/types.h>
@@ -162,6 +163,8 @@ std::string Server::get_response(std::string request)
 
 	CmdMap::iterator i;
 	int ret = EXIT_FAILURE;
+
+	assert(request.size());
 
 	Parser mg_cmd_parser_(request, this->mg_logger_);
 
