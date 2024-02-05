@@ -4,11 +4,11 @@ AR	= ar
 SRCDIR	= src
 INCDIR	= inc
 LIBDIR	= lib
+TESTDIR	= test
 SHARED	= shared
 APP		= mg_server
 
-TESTDIR	= test
-
+GSRCDIR	= ../googletest/googletest
 
 MKDIR	= mkdir -p
 OUTDIR	= exe
@@ -55,39 +55,10 @@ dir_lib:
 check:
 	./$(OUTDIR)/$(APP)
 
-clean:
+clean: 
 	rm -rf $(OUTDIR) \
 		-rf ${LIBDIR} \
 		*.$(OBJEXT) \
 		lib$(APP).a \
 		$(SRCDIR)/*.$(OBJEXT) \
 		../$(SHARED)/*.$(OBJEXT)
-#########################################################
-#test: clean build_test
-
-#check: run_test
-
-##################################################################################
-#                              TEST
-##################################################################################
-#build_test:
-#	$(call make-test)
-#clean_test:
-#	$(call clean-test)
-#run_test:
-#	$(call run-test)
-##################################################################################
-#                              DEFINES
-##################################################################################
-#define make-test
-#	cd $(TESTDIR); \
-#	make;
-#endef
-#define clean-test
-#	cd $(TESTDIR); \
-#	make clean;
-#endef
-#define run-test
-#	cd $(TESTDIR); \
-#	make check;
-#endef

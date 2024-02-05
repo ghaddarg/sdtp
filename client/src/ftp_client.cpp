@@ -11,6 +11,7 @@
 /*****************************************************/
 #include <iostream>
 #include <string>
+#include <cassert>
 
 extern "C" {
 	#include <sys/socket.h>
@@ -119,7 +120,8 @@ int Client::close_connection(void)
 
 	/* Close socket connection */
 	mg_logger_.debug(__FUNCTION__, "Try to close connection to server address");
-	close(this->client_fd_);
+	ret = close(this->client_fd_);
+	assert(ret >= 0);
 	mg_logger_.debug(__FUNCTION__, "******** Session ENDED ********");
 
 	ret = EXIT_SUCCESS;
@@ -135,6 +137,8 @@ int Client::send_cmd(std::string& msg_)
 	while ((ret = send(this->client_fd_, (void *)request.c_str(), request.size(), 0))) {
 
 		mg_logger_.debug(__FUNCTION__, "Sent " + std::to_string(ret) + " byte to server");
+
+		assert(ret > 0);
 
 		std::string response;
 		char msg[MAX_MSG_LEN] = { 0 };
