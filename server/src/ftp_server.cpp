@@ -38,10 +38,15 @@ namespace mg_ftp
 Server::Server(const unsigned int& port_num, const unsigned int& max_client, Logger& mg_logger) 
 	: mg_logger_(mg_logger), port_num_(port_num), max_client_(max_client), server_fd_(0), client_sd_(0)
 {
-	mg_logger_.debug("Server Object Created");
+	mg_logger_.debug(__FUNCTION__, "Server Object Created");
 
-	if (this->port_num_ < 0 || this->max_client_ <= 0)
-		throw ServerInvalidPortException(__FUNCTION__);
+	try {
+		if (this->port_num_ < 0 || this->max_client_ <= 0)
+			throw ServerException(__FUNCTION__, "Error eInvalid port of max clients allowed");
+	} catch (ServerException e) {
+		mg_logger_.error(__FUNCTION__, e.what());
+	}
+	
 
 	memset(&this->server_addr_, 0, sizeof(sockaddr_in));
 
@@ -52,7 +57,7 @@ Server::Server(const unsigned int& port_num, const unsigned int& max_client, Log
 }
 Server::~Server()
 {
-	mg_logger_.debug("Server Object Destroyed");
+	mg_logger_.debug(__FUNCTION__, "Server Object Destroyed");
 }
 /* -------------------------------------------------------------------- */
 /*                            PRIVATE FUNCTIONS                         */
@@ -61,20 +66,25 @@ int Server::create_socket(void)
 {
 	int ret = EXIT_FAILURE;
 
-	mg_logger_.debug("setup a socket and connection tools on port: " + std::to_string(port_num_));
+	mg_logger_.debug(__FUNCTION__, "setup a socket and connection tools on port: " + std::to_string(port_num_));
 	
 	this->server_addr_.sin_family = AF_INET;
 	this->server_addr_.sin_addr.s_addr = htonl(INADDR_ANY);
 	this->server_addr_.sin_port = htons(port_num_);
 
-	mg_logger_.debug("open stream oriented socket with internet address with socket descriptor ");
+	mg_logger_.debug(__FUNCTION__, "open stream oriented socket with internet address with socket descriptor ");
 
-	this->server_fd_ = socket(this->server_addr_.sin_family, SOCK_STREAM, 0);
-	if (this->server_fd_ < 0) {
-		this->mg_logger_.error("Server Invalid Socket Descriptor ");
-		throw ServerInvalidSocketDescriptorException(__FUNCTION__, strerror(errno));
+	try {
+		this->server_fd_ = socket(this->server_addr_.sin_family, SOCK_STREAM, 0);
+		if (this->server_fd_ < 0) {
+			throw ServerException(__FUNCTION__, "Error creating the server socket");
+		}
+	} catch (ServerException e) {
+		this->mg_logger_.error(__FUNCTION__, strerror(errno));
+		this->mg_logger_.error(__FUNCTION__, e.what());
 		return ret;
 	}
+	
 
 	ret = EXIT_SUCCESS;
 	return ret;
@@ -84,14 +94,20 @@ int Server::bind_socket(void)
 {
 	int ret = EXIT_FAILURE, bind_ret;
 
-	mg_logger_.debug("bind the socket to its local address");
+	mg_logger_.debug(__FUNCTION__, "bind the socket to its local address");
 
-	bind_ret = ::bind(this->server_fd_, reinterpret_cast<struct sockaddr *>(&server_addr_), sizeof(this->server_addr_));
-	if (bind_ret < 0) {
-		mg_logger_.error("Server Binding Failed");
-		throw ServerBindFailException(__FUNCTION__, strerror(errno));
-		return ret;
+	try {
+		bind_ret = ::bind(this->server_fd_, reinterpret_cast<struct sockaddr *>(&server_addr_), sizeof(this->server_addr_));
+		if (bind_ret < 0) {
+			throw ServerException(__FUNCTION__, "Error binding socket to local address");
+			
+		}
+	} catch (ServerException e) {
+		mg_logger_.error(__FUNCTION__, strerror(errno));
+		mg_logger_.error(__FUNCTION__, e.what());
+		return ret;	
 	}
+	
 
 	ret = EXIT_SUCCESS;
 	return ret;
@@ -101,16 +117,19 @@ int Server::listen_socket(void)
 {
 	int ret = EXIT_FAILURE, listen_ret;
 
-	mg_logger_.debug("Listen for a client...");
+	mg_logger_.debug(__FUNCTION__, "Listen for a client...");
 
-	listen_ret = listen(server_fd_, this->max_client_);
-	if (listen_ret < 0) {
-		mg_logger_.error("Server Listen Failure");
-		throw ServerListenFailureException(__FUNCTION__, strerror(errno));
+	try {
+		listen_ret = listen(server_fd_, this->max_client_);
+		if (listen_ret < 0)
+			throw ServerException(__FUNCTION__, "Server Listen Failure");
+	} catch (ServerException e) {
+		mg_logger_.warn(__FUNCTION__, e.what());
+		mg_logger_.error(__FUNCTION__, strerror(errno));
 		return ret;
 	}
-
-	mg_logger_.debug("Waiting for a client to connect");
+	
+	mg_logger_.debug(__FUNCTION__, "Waiting for a client to connect");
 
 	ret = EXIT_SUCCESS;
 	return ret;
@@ -122,17 +141,19 @@ int Server::accept_connection(void)
     sockaddr_in client_sock_addr;
     socklen_t client_sock_addr_size = sizeof(client_sock_addr);
 
-    /* Accept, create a new socket descriptor to handle the new connection with client */
-    this->client_sd_ = accept(this->server_fd_, (sockaddr *)&client_sock_addr, &client_sock_addr_size);
-    if(this->client_sd_ < 0)
-    {
-    	mg_logger_.error("Error accepting request from client!");
-    	ServerListenFailureException(__FUNCTION__, strerror(errno));
-    } else {
-    	mg_logger_.error("Connected with client:" + std::to_string(this->client_sd_));
-    }
+	/* Accept, create a new socket descriptor to handle the new connection with client */
+    try {
+    	this->client_sd_ = accept(this->server_fd_, (sockaddr *)&client_sock_addr, &client_sock_addr_size);
+		if(this->client_sd_ < 0)
+			throw ServerException(__FUNCTION__, "Error accepting request from client!");
+		else
+			this->mg_logger_.debug(__FUNCTION__, "Connected with client:" + std::to_string(this->client_sd_));
+	} catch (ServerException& e) {
+		mg_logger_.warn(__FUNCTION__, e.what());
+		mg_logger_.error(__FUNCTION__, strerror(errno));
+	}
 
-    return this->client_sd_;
+	return this->client_sd_;
 }
 
 std::string Server::get_response(std::string request)
@@ -147,13 +168,13 @@ std::string Server::get_response(std::string request)
 	std::cout << request.size() << std::endl;
 	if (request.size() < 2) {
 
-		mg_logger_.error("request size too small");
+		mg_logger_.warn(__FUNCTION__, "request size too small");
 		return std::string("Failure");	
 	}
 
 	if ((i = this->cf_.find(mg_cmd_parser_.get_cmd())) == this->cf_.end()) {
 
-		mg_logger_.error("Command not in map. Something went wrong");
+		mg_logger_.error(__FUNCTION__, "Command not in map. Something went wrong");
 		return std::string("Failure");;
 	}
 
@@ -191,34 +212,37 @@ int Server::parse_commands(std::thread::id thread_id, int client_num_)
 	std::stringstream ss;
 	ss << thread_id;
 
-	mg_logger_.debug("**************************************************************");
-	mg_logger_.debug("Thread " + ss.str() + " Created to Recieve request from Client: " +
+	mg_logger_.debug(__FUNCTION__, "**************************************************************");
+	mg_logger_.debug(__FUNCTION__, "Thread " + ss.str() + " Created to Recieve request from Client: " +
 		std::to_string(client_num_));
-	mg_logger_.debug("**************************************************************");
+	mg_logger_.debug(__FUNCTION__, "**************************************************************");
 
 	while ((ret = recv(this->client_sd_, reinterpret_cast<void *>(msg), max_len, 0))) {
 
 		std::string request(msg);
-		mg_logger_.debug("Recieved: " + std::to_string(ret) + " byte from client: " + request);
+		mg_logger_.debug(__FUNCTION__, "Recieved: " + std::to_string(ret) + " byte from client: " + request);
 		if (!ret) {
-			mg_logger_.error("Failed to recieve request from client");
+			mg_logger_.error(__FUNCTION__, "Failed to recieve request from client");
 			ret = EXIT_FAILURE;
 			return ret;
 		}
 
 		std::string response = get_response(request);
-		mg_logger_.debug("Send response to client");
+		mg_logger_.debug(__FUNCTION__, "Send response to client");
 
-		//XXX: TODO: @MG Smart pointers
-		ret = send(this->client_sd_, (void *)response.c_str(), strlen(response.c_str()), 0);
-		if (!ret) {
-			mg_logger_.error("Failed to Send response to client");
+		try {
+			//XXX: TODO: @MG Smart pointers
+			ret = send(this->client_sd_, (void *)response.c_str(), strlen(response.c_str()), 0);
+			if (!ret)
+				throw ServerException(__FUNCTION__, "Failed to Send response to client");
+		} catch(ServerException& e) {
+			this->mg_logger_.error(__FUNCTION__, e.what());
+			this->mg_logger_.warn(__FUNCTION__, strerror(errno));
 			ret = EXIT_FAILURE;
 			return ret;
 		}
 
-		mg_logger_.debug("Sent "+ std::to_string(ret) + " byte to client: " + response);
-
+		this->mg_logger_.debug(__FUNCTION__, "Sent "+ std::to_string(ret) + " byte to client: " + response);
 	}
 
 	ret = EXIT_SUCCESS;
@@ -247,7 +271,7 @@ int Server::get_payload(const Key& k, const Payload& d)
 
 	if ((i = this->sm_.find(k)) == this->sm_.end()) {
 
-		mg_logger_.error("Something went wrong");
+		mg_logger_.error(__FUNCTION__, "Something went wrong");
 		return ret;
 	}
 
@@ -262,7 +286,7 @@ int Server::dequeue(const Key& k, const Payload& d)
 
 	if ((i = this->sm_.find(k)) == this->sm_.end()) {
 
-		mg_logger_.error("Something went wrong");
+		mg_logger_.error(__FUNCTION__, "Something went wrong");
 		return ret;
 	}
 
@@ -284,7 +308,7 @@ int Server::update(const Key& k, const Payload& d)
 
 	if (i != sm_.end()) {
 
-		mg_logger_.error("Something went wrong");
+		mg_logger_.error(__FUNCTION__, "Something went wrong");
 		return ret;
 	} 
 		
@@ -304,8 +328,11 @@ int Server::enqueue(const Key& k, const Payload& d)
 		File f_name(k);
 		sm_.emplace(k, f_name);
 	}
-	if (sm_.end() != i)
+	if (sm_.end() != i) {
+
+		mg_logger_.error(__FUNCTION__, "Something went wrong");
 		ret = EXIT_FAILURE;
+	}
 
 	return ret;
 }
@@ -318,25 +345,33 @@ int Server::file_io(const std::string& f_name, const Payload& d, int operation)
 	int ret = EXIT_FAILURE;
 	std::string payload;
 
-	f_file.open(f_name);
+	try {
 
-	if (ENUM_R == operation) {
+		f_file.open(f_name);
 
-		std::ifstream input_file;
+		if (ENUM_R == operation) {
 
-		while (std::getline(input_file, payload)) {
+			std::ifstream input_file;
 
-			Payload temp(payload.begin(), payload.end());
-			
-			//XXX: TODO: @MG: FIX ME!!!
+			while (std::getline(input_file, payload)) {
+
+				Payload temp(payload.begin(), payload.end());
+				
+				//XXX: TODO: @MG: FIX ME!!!
+			}
+		} else if (ENUM_W == operation) {
+			for (const auto &c : d)
+				f_file << c;
+		} else if (ENUM_D == operation) {
+			f_file.close();
+			if (std::remove(f_name.c_str()))
+				throw FileException(__FUNCTION__, "Disk IO Error: Failed to delete file");
 		}
-	} else if (ENUM_W == operation) {
-		for (const auto &c : d)
-			f_file << c;
-	} else if (ENUM_D == operation) {
-		f_file.close();
-		std::remove(f_name.c_str());
-	}
+	} catch (FileException& e) {
+
+		mg_logger_.warn(__FUNCTION__, e.what());
+		mg_logger_.error(__FUNCTION__, strerror(errno));
+	} 
 	
 	f_file.close();
 	
@@ -350,8 +385,6 @@ int Server::main_loop(void)
 {
 	int ret;
 	std::vector<std::thread> client_threads;
-
-	mg_logger_.debug("HELLO WORLD");
 
 	try {
 
@@ -369,13 +402,11 @@ int Server::main_loop(void)
 			client_threads.emplace_back([&]() {Server::parse_commands(std::this_thread::get_id(), ret);});
 	} catch (const exception& e) {
 
-		mg_logger_.debug(e.what());
-
-		for (auto& th : client_threads)
-			th.join();
-
-		mg_logger_.debug("GOODBYE WORLD");
+		mg_logger_.warn(__FUNCTION__, e.what());
 	}
+
+	for (auto& th : client_threads)
+			th.join();
 
 	ret = EXIT_SUCCESS;
 	return ret;

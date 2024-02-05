@@ -38,20 +38,20 @@ public:
 	Logger(level l) : msg_level_(l) { }
 	~Logger() { }
 
-	void debug(std::string s)
+	void debug(std::string func, std::string s)
 	{
 		if (msg_level_ >= INFO) 
-			debug_log(s, "INFO: "); 
+			debug_log(s, "INFO: " + func + "(): "); 
 	}
-	void warn(std::string s)
+	void warn(std::string func, std::string s)
 	{
 		if (msg_level_ >= WARN) 
-			debug_log(s, "WARNING: ");
+			debug_log(s, "WARNING: " + func + "(): ");
 	}
-	void error(std::string s)
+	void error(std::string func, std::string s)
 	{
 		if (msg_level_ >= ERROR)
-			debug_log(s, "ERROR: ");
+			debug_log(s, "ERROR: " + func + "(): ");
 	}
 
 private:
